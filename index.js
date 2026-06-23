@@ -1,11 +1,10 @@
-﻿// ============================================================
+// ============================================================
 // 联想教育套装政策助手 - 天禧Claw Skill
 // 功能：实时读取飞书多维表格，回答门店政策问题
 // ============================================================
 
-// 飞书凭证（通过环境变量注入，或在此处直接填写）
-const FEISHU_APP_ID = process.env.FEISHU_APP_ID || 'YOUR_APP_ID';
-const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET || 'YOUR_APP_SECRET';
+const FEISHU_APP_ID = 'cli_a94d13444478dbb4';
+const FEISHU_APP_SECRET = 'hLr2wgdsNVsA1dBpjNxIDcRarNajCRvu';
 const FEISHU_APP_TOKEN = 'MlenbxPgDaQ7sIsgawBchTcenWg';
 const FEISHU_TABLE_ID = 'tbld1Jjid5Yfr48f';
 const FEISHU_DOMAIN = 'https://open.feishu.cn';
