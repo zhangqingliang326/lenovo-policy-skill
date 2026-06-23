@@ -1,66 +1,25 @@
 // ============================================================
 // 联想教育套装政策助手 - 天禧Claw Skill
-// 功能：实时读取飞书多维表格，回答门店政策问题
+// 功能：查询活动政策、产品信息、补贴金额等
+// 数据来源：本地 data.json（由维护人员定期更新）
 // ============================================================
 
-const FEISHU_APP_ID = 'cli_a94d13444478dbb4';
-const FEISHU_APP_SECRET = 'hLr2wgdsNVsA1dBpjNxIDcRarNajCRvu';
-const FEISHU_APP_TOKEN = 'MlenbxPgDaQ7sIsgawBchTcenWg';
-const FEISHU_TABLE_ID = 'tbld1Jjid5Yfr48f';
-const FEISHU_DOMAIN = 'https://open.feishu.cn';
+const fs = require('fs');
+const path = require('path');
 
-let cachedToken = null;
-let tokenExpiry = 0;
-let cachedRecords = null;
-let cacheTime = 0;
-const CACHE_TTL = 5 * 60 * 1000;
+let allData = null;
 
-async function getToken() {
-    if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
-    const res = await fetch(FEISHU_DOMAIN + '/open-apis/auth/v3/tenant_access_token/internal', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app_id: FEISHU_APP_ID, app_secret: FEISHU_APP_SECRET })
-    });
-    const data = await res.json();
-    cachedToken = data.tenant_access_token;
-    tokenExpiry = Date.now() + (data.expire - 300) * 1000;
-    return cachedToken;
+function loadData() {
+    if (allData) return allData;
+    const dataPath = path.join(__dirname, 'data.json');
+    allData = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+    return allData;
 }
 
-async function fetchRecords() {
-    if (cachedRecords && Date.now() - cacheTime < CACHE_TTL) return cachedRecords;
-    const token = await getToken();
-    let allRecords = [];
-    let pageToken = '';
-    do {
-        let url = FEISHU_DOMAIN + '/open-apis/bitable/v1/apps/' + FEISHU_APP_TOKEN +
-            '/tables/' + FEISHU_TABLE_ID + '/records?page_size=500';
-        if (pageToken) url += '&page_token=' + pageToken;
-        const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-        const data = await res.json();
-        if (data.data && data.data.items) allRecords = allRecords.concat(data.data.items);
-        pageToken = (data.data && data.data.has_more) ? data.data.page_token : '';
-    } while (pageToken);
-    cachedRecords = allRecords;
-    cacheTime = Date.now();
-    return allRecords;
-}
-
-function flatten(record) {
-    const fields = {};
-    for (const [key, val] of Object.entries(record.fields || {})) {
-        if (typeof val === 'string') fields[key] = val;
-        else if (Array.isArray(val)) fields[key] = val.map(v => v.text || v.name || JSON.stringify(v)).join('');
-        else if (val && typeof val === 'object') fields[key] = val.text || val.name || JSON.stringify(val);
-        else fields[key] = String(val || '');
-    }
-    return fields;
-}
-
-function search(records, keyword) {
+function search(keyword) {
+    const data = loadData();
     const kw = keyword.toLowerCase();
-    return records.map(flatten).filter(f => {
+    return data.filter(f => {
         const text = [
             f['\u6587\u672c'], f['\u4e00\u53e5\u8bdd\u8bf4\u6e05'], f['\u6307\u5b9a\u4ea7\u54c1'],
             f['\u987e\u5ba2\u80fd\u5f97\u5230\u4ec0\u4e48'], f['\u64cd\u4f5c\u6b65\u9aa4'],
@@ -110,8 +69,7 @@ async function activate(context) {
             required: ['keyword']
         },
         handler: async (params) => {
-            const records = await fetchRecords();
-            const results = search(records, params.keyword);
+            const results = search(params.keyword);
             if (results.length === 0) return '\u672a\u627e\u5230\u4e0e"' + params.keyword + '"\u76f8\u5173\u7684\u653f\u7b56\u4fe1\u606f\u3002\u8bf7\u5c1d\u8bd5\u5176\u4ed6\u5173\u952e\u8bcd\u3002';
             const acts = results.filter(r => r['\u72b6\u6001'] !== '\ud83d\udcbb \u4ea7\u54c1\u901f\u67e5');
             const prods = results.filter(r => r['\u72b6\u6001'] === '\ud83d\udcbb \u4ea7\u54c1\u901f\u67e5');
@@ -134,8 +92,8 @@ async function activate(context) {
         description: '\u5217\u51fa\u5f53\u524d\u6240\u6709\u8fdb\u884c\u4e2d\u7684\u6d3b\u52a8\u653f\u7b56\u6982\u89c8\u3002\u5f53\u7528\u6237\u95ee"\u73b0\u5728\u6709\u4ec0\u4e48\u6d3b\u52a8"\u3001"\u5f53\u524d\u653f\u7b56"\u7b49\u5bbd\u6cdb\u95ee\u9898\u65f6\u8c03\u7528\u3002',
         parameters: { type: 'object', properties: {} },
         handler: async () => {
-            const records = await fetchRecords();
-            const acts = records.map(flatten).filter(r => r['\u72b6\u6001'] && r['\u72b6\u6001'] !== '\ud83d\udcbb \u4ea7\u54c1\u901f\u67e5');
+            const data = loadData();
+            const acts = data.filter(r => r['\u72b6\u6001'] && r['\u72b6\u6001'] !== '\ud83d\udcbb \u4ea7\u54c1\u901f\u67e5');
             let output = '# \u5f53\u524d\u6d3b\u52a8\u653f\u7b56\u4e00\u89c8\n\n';
             for (const a of acts) {
                 output += '- **' + (a['\u6587\u672c'] || '') + '** ' + (a['\u72b6\u6001'] || '') + '\n';
