@@ -1,9 +1,0 @@
-{
-  "name": "lenovo-policy-assistant",
-  "version": "1.0.0",
-  "description": "联想教育套装政策助手",
-  "main": "index.js",
-  "keywords": ["联想", "政策", "教育", "套装", "晒单"],
-  "author": "联想教育团队",
-  "license": "MIT"
-}
