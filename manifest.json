@@ -1,8 +1,0 @@
-{
-  "name": "lenovo-policy-assistant",
-  "version": "1.0.0",
-  "description": "联想教育套装政策助手 - 实时查询飞书多维表格中的活动政策、产品信息、补贴金额等",
-  "author": "联想教育团队",
-  "keywords": ["联想", "政策", "教育补贴", "套装", "晒单", "PO加磅", "Y9000P", "YOGA", "拯救者"],
-  "main": "index.js"
-}
